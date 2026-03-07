@@ -8,13 +8,18 @@ from typing import Final
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, CONF_SHOW_ON_MAP, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_SENSOR, CONF_SENSOR_INDEX, DOMAIN, LOGGER, SCHEMA_VERSION, TITLE
 from .coordinator import PurpleAirConfigEntry, PurpleAirDataUpdateCoordinator
 
 PLATFORMS: Final[list[str]] = [Platform.SENSOR]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
@@ -27,16 +32,15 @@ async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: PurpleAirConfigEntry) -> bool:
     """Set up PurpleAir config entry."""
-    coordinator = PurpleAirDataUpdateCoordinator(
-        hass,
-        entry,
-    )
+    coordinator = PurpleAirDataUpdateCoordinator(hass, entry)
     entry.runtime_data = coordinator
 
     if len(entry.subentries) > 0:
         await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     return True
 
@@ -314,8 +318,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: PurpleAirConfigEntry) 
     )
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: PurpleAirConfigEntry) -> None:
-    """Reload config entry."""
+async def async_update_options(
+    hass: HomeAssistant, entry: PurpleAirConfigEntry
+) -> None:
+    """Update options."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
