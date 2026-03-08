@@ -26,24 +26,6 @@ from .const import TEST_API_KEY, TEST_SENSOR_INDEX1
 from tests.common import MockConfigEntry, load_fixture
 
 
-@pytest.fixture(name="api")
-def api_fixture(get_sensors_response: GetSensorsResponse) -> Mock:
-    """Define a fixture to return a mocked aiopurpleair API object."""
-    return Mock(
-        async_check_api_key=AsyncMock(),
-        get_map_url=Mock(return_value="http://example.com"),
-        sensors=Mock(
-            async_get_nearby_sensors=AsyncMock(
-                return_value=[
-                    NearbySensorResult(sensor=sensor, distance=1.0)
-                    for sensor in get_sensors_response.data.values()
-                ]
-            ),
-            async_get_sensors=AsyncMock(return_value=get_sensors_response),
-        ),
-    )
-
-
 @pytest.fixture(name="config_entry")
 def config_entry_fixture(
     hass: HomeAssistant,
@@ -110,6 +92,47 @@ def get_sensors_response_fixture() -> GetSensorsResponse:
     return GetSensorsResponse.model_validate_json(
         load_fixture("get_sensors_response.json", "purpleair")
     )
+
+
+@pytest.fixture(name="api")
+def api_fixture(get_sensors_response: GetSensorsResponse) -> Mock:
+    """Define a fixture to return a mocked aiopurpleair API object."""
+    return Mock(
+        async_check_api_key=AsyncMock(),
+        get_map_url=Mock(return_value="http://example.com"),
+        sensors=Mock(
+            async_get_nearby_sensors=AsyncMock(
+                return_value=[
+                    NearbySensorResult(sensor=sensor, distance=1.0)
+                    for sensor in get_sensors_response.data.values()
+                ]
+            ),
+            async_get_sensors=AsyncMock(return_value=get_sensors_response),
+        ),
+    )
+
+
+# TODO: @Joostlek change, test_sensor_values_error test fails
+# @pytest.fixture(name="mock_aiopurpleair")
+# def mock_aiopurpleair_fixture(
+#     get_sensors_response: GetSensorsResponse,
+# ) -> Generator[Mock]:
+#     """Define a fixture to patch aiopurpleair."""
+#     with (
+#         patch(
+#             "homeassistant.components.purpleair.coordinator.API", autospec=True
+#         ) as mock_api,
+#         patch("homeassistant.components.purpleair.config_flow.API", new=mock_api),
+#     ):
+#         api = mock_api.return_value
+#         api.get_map_url.return_value = "http://example.com"
+#         api.sensors = AsyncMock()
+#         api.sensors.async_get_nearby_sensors.return_value = [
+#             NearbySensorResult(sensor=sensor, distance=1.0)
+#             for sensor in get_sensors_response.data.values()
+#         ]
+#         api.sensors.async_get_sensors.return_value = get_sensors_response
+#         yield api
 
 
 @pytest.fixture(name="mock_aiopurpleair")
